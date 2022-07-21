@@ -1,2 +1,2 @@
-# Harvey Nash UROP
- Harvey Nash analysis using python
+# Harvey Nash UROP (Under Dr. Stephanie Woerner)
+ Harvey Nash analysis using Python and R
