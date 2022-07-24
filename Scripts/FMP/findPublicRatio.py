@@ -15,20 +15,16 @@ def getRatio(tickerList, dataPoints):
     load_dotenv()
     apikey = os.environ.get("APIKEY")
 
-    tickers = open('list_tickers.txt', 'r')
-
-    #initialize dataset to be made
-    dataPoints = ['symbol', 'date', 'currentRatio', 'quickRatio', 'cashRatio', 'netProfitMargin', 'returnOnAssets', 
-        'returnOnEquity', 'debtEquityRatio']   
-
+    #initialize dataset to be made 
     df = pd.DataFrame(columns=dataPoints)
-
 
     def yearData(dict):
         """
-        Takes in dictionary with possible dataPoints
+        Parameters:
+            - dict: Dictionary with possible data points
 
-        Returns a list with same n row dimension as DataFrame that we are trying to produce
+        Returns:
+            - listVal: List of values associated with the keys specifed above
         """
         listVals = []
 
@@ -50,9 +46,13 @@ def getRatio(tickerList, dataPoints):
         except:
             continue
 
-    df.to_excel('data_fmp.xlsx')
+    df.to_excel('data_fmp_rest.xlsx')
 
-sys.modules[__name__] = getRatio
+tickers = []
 
+for line in open('list_tickers.txt', 'r').readlines():
+    tickers.append(line.split('\n')[0])
+
+getRatio(tickers, ['symbol', 'date', 'currentRatio', 'quickRatio', 'cashRatio', 'netProfitMargin', 'returnOnAssets', 'returnOnEquity', 'debtEquityRatio'])
 
 

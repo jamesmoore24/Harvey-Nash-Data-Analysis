@@ -41,24 +41,12 @@ from bs4 import BeautifulSoup
 import requests
 from io import StringIO
 from selenium import webdriver
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
 
 
-#import data
-survey_df = pd.read_excel(r'Sheets/hn_public_ratios.xlsx')
-
-
-high_index = 0
-high_val = 0
-
-for index, row in survey_df.iterrows():
-    if row['Return on Assets'] > high_val:
-        high_val = row['Return on Assets']
-        high_index = index
-
-print(index)
-print(high_val)
 
 ###WEBSCRAPER###
 #Takes 2-10 seconds/query * ~2000 companies = ~3.33 hours to complete
@@ -104,6 +92,43 @@ for index, row in survey_df.iterrows():
 d = {'Company Name': company_list, 'Exchange': exchange_list, 'Ticker': ticker_list}
 df = pd.DataFrame(data=d)
 df.to_excel("tickers.xlsx")  """
+
+###GICS Sector Code Getter
+
+df = pd.read_excel('data_fmp.xlsx')
+
+gics_sector = []
+gics_dict = dict()
+
+driver = webdriver.Chrome()
+
+for index, row in df.iterrows():
+    if row['symbol'] not in gics_dict:
+        ticker = row['symbol']
+        
+        #query the fidelity website to obtain gics code
+        driver.get(f'https://eresearch.fidelity.com/eresearch/evaluate/snapshot.jhtml?symbols={ticker}')
+        try:
+            info = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "/html/body/table/tbody/tr/td[4]/table[2]/tbody/tr/td[1]/div[3]/div[8]/span/a"))).text
+        except:
+            info = ' '
+        
+        #create new entry for gics sector
+        gics_dict[row['symbol']] = info
+        gics_sector.append(info)
+        sleep = random.random()*3+2
+        print("Sleeping for " + str(sleep))
+        time.sleep(sleep)
+    else:
+        gics_sector.append(gics_dict[row['symbol']])
+    
+    print(gics_sector)
+    #need to sleep so google doesn't know it is a bot
+    
+
+df['GICS Sector'] = gics_sector
+
+df.to_excel('gics_data_fmp.xlsx')
 
 
 
