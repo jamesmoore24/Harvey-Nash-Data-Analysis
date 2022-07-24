@@ -1,4 +1,4 @@
-# Harvey Nash Group Digital Leadership Report 2021: A Formal Analysis
+# Harvey Nash Group Digital Leadership Report 2021: Data Analysis
 
 The Harvey Nash Group Digital Leadership Report, carried out by the MIT Center for Information Systems Research, surveyed 1,996 company executives (CIOs, heads of tech, CTOs, CDOs, CEOs, CMOs, COOs, CFOs) on topics that include but are not limited to business strategy, leadership, carbon footprint, performance relative to competitors, impact of COVID, skills shortages, talent retention, staff diversity/inclusion, budgeting, company organization, cyber-security, and innovation in the workplace. 
 
