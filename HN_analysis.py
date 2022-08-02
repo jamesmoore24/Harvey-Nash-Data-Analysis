@@ -41,25 +41,35 @@ v 1.2.2 (7/25/22):
     - Ran into some issues with querying datetime objects using sqlalchemy so had to convert datetime to regular strings in the industry year-series spreadsheet
     - Ran into issues with wrong dates/aggregation on the industry year-series so I had to mark when a year was ending and then dump previous year data
         - These issues are resolved now (.apply() function)
+
+v 1.2.3 (7/27/22):
+    - Began to graph regressions between financial ratios to make sure visualization code was complete
+        -Error arose when outliers weren't being dealt with properly
+    - Implemented 5% trim on all data entered to get rid of outliers
+        - Outliers still aren't being processed
+
+v 1.3 (7/29/22):
+    - Data visualization complete and errors fixed 
+        - Ran into indexing error and ended up ghaving to use dataframe instead of individual series to work
+        - When dropping values from list, alters list and creates indexing problem essentially
     - 
 """
-
-from ast import Raise
-from hashlib import new
 import pandas as pd
 import time
 import random
 import datetime
 import fmpsdk
 import os
-import sqlite3
-import math
-from sqlalchemy import create_engine, engine
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+from sqlalchemy import create_engine
 from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from sympy import comp
 
 def get_public_fin_data(tickers, data_points, export_filename):
     """
@@ -353,9 +363,97 @@ def percent_to_industry(industry_filename, company_filename, export_filename):
         
     company_df.columns = new_col_names
     company_df.to_excel(export_filename)
+
+def regression_visual(company_filename, qual_filename, x_var, y_var, export_filename):
+    """
+    Parameters:
+        - company_filename: File path to the spreadsheet with data for companies (raw or manipulated data)
+        - qual_filename: File path to the spreadsheet which contains information 
+        - x_var: string variable to be displayed on the x-axis (also the column name of the data)
+        - y_var: string variable to be displayed on the y-axis (also the column name of the data)
+        - export_filename: filename that you want to export it as (please include file preferred file type)
     
+    Actions:
+        - Returns: None
+        - Makes a regression between two variables which demonstrates correlation between the two
+    
+    Notes:
+        - TBD
+    """
+    
+    qual_df = pd.read_excel(qual_filename)
+    company_df = pd.read_excel(company_filename, index_col=0)
+
+    def mean_trim_list(int_trim, df):
+        """
+        Parameters:
+            - col: DataFrame column object
+            - int_trim: Proportion of list 
+
+        Actions:
+            - Returns: list of indicies to delete from df
+        """
+        cut = int((len(df[x_var])*int_trim)/2)
+
+        val_dict = {}
+        #obtain sorted lists mapped to variable
+        for var in [x_var, y_var]:
+            listt = [(ix, row[var]) for ix, row in df.iterrows()]
+            listt.sort(key= lambda x: x[1])
+            val_dict[var] = listt
+        
+        #obtain index numbers from first and last cut for both and set ix_cut
+        ix_cut = []
+        for i in range(len(val_dict[x_var])):
+            if (i < cut) or (i > len(val_dict[x_var]) - cut):
+                ix_cut.append(val_dict[x_var][i][0])
+                ix_cut.append(val_dict[y_var][i][0])
+        
+        #get rid of repeats
+        return list(set(ix_cut))
+
+    #drop spaces w/o data
+    company_df[x_var].replace('', np.nan, inplace=True)
+    company_df[y_var].replace('', np.nan, inplace=True)
+    company_df.dropna(subset=[x_var,y_var], inplace=True)
+
+    #obtain indices to drop and drop
+    ix_cut = mean_trim_list(0.05, company_df)
+    company_df = company_df.drop(ix_cut)
+    
+    #Present Data
+    def calc_range(x):
+        return np.max(x) - np.min(x)
+
+    #Titles
+    plt.title(f"{x_var} vs. {y_var} (2017-2021)")
+    plt.xlabel(f'{x_var}')
+    plt.ylabel(f'{y_var}')
+    
+    #Regression
+    company_df.dropna()
+    m, b = np.polyfit(company_df[x_var], company_df[y_var], 1)
+    plt.plot(company_df[x_var], m*company_df[x_var]+b, label = f'y = {b} + {m}*x'.format('B0', 'B1'))
+
+    #Labels with Information Box
+    x_coord = company_df[x_var].max()
+    y_coord = company_df[y_var].max()
+    scale = calc_range(company_df.loc[:, y_var])/60
+
+    plt.text(x_coord, y_coord - 4*scale, f'y = {m.round(4)}x + {b.round(4)}', horizontalalignment='right')
+
+    plt.text(x_coord, y_coord - 7*scale, f'Corr. = {round(np.corrcoef(company_df.loc[:, x_var], company_df.loc[:, y_var]).item(1), 5)}',horizontalalignment='right')
+
+    #Regression Line and Data
+    plt.scatter(company_df[x_var], company_df[y_var])
+    plt.text(x_coord, y_coord-scale, f'N = {len(company_df.index)}', horizontalalignment='right')
+
+    #Show and save
+    plt.show()
+    plt.savefig(export_filename) 
+
 if __name__ == "__main__":
-    None
+    regression_visual('Sheets/public_fin_indiv.xlsx', 'Sheets/public_fin_industry_year.xlsx', 'returnOnEquity', 'debtEquityRatio', 'i.png')
     
     
 
