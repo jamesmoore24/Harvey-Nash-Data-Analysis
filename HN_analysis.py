@@ -53,7 +53,14 @@ v 1.3 (7/29/22):
         - Ran into indexing error and ended up ghaving to use dataframe instead of individual series to work
         - When dropping values from list, alters list and creates indexing problem essentially
     - 
+
+v 1.3.1 (8/2/22):
+    - Adding capabilities for box plots SOLVED
+        - Have to scan and set-list to obtain possible answers for questions instead of having user-input those answers
+        - O(n) time scale for this, shouldn't matter because of small N value (Takes like 5 seconds to query)
+    - 
 """
+from cmath import isnan
 import pandas as pd
 import time
 import random
@@ -62,14 +69,12 @@ import fmpsdk
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import stats
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from sympy import comp
 
 def get_public_fin_data(tickers, data_points, export_filename):
     """
@@ -364,13 +369,13 @@ def percent_to_industry(industry_filename, company_filename, export_filename):
     company_df.columns = new_col_names
     company_df.to_excel(export_filename)
 
-def regression_visual(company_filename, qual_filename, x_var, y_var, export_filename):
+def regression_visual(quant_filename, x_var, y_var, mean_trim, export_filename):
     """
     Parameters:
-        - company_filename: File path to the spreadsheet with data for companies (raw or manipulated data)
-        - qual_filename: File path to the spreadsheet which contains information 
+        - quant_filename: File path to the spreadsheet with data for companies (raw or manipulated data)
         - x_var: string variable to be displayed on the x-axis (also the column name of the data)
         - y_var: string variable to be displayed on the y-axis (also the column name of the data)
+        - mean_trim: float value [0,1] that represents the proportion of data that will be trimmed to perform regression
         - export_filename: filename that you want to export it as (please include file preferred file type)
     
     Actions:
@@ -378,11 +383,11 @@ def regression_visual(company_filename, qual_filename, x_var, y_var, export_file
         - Makes a regression between two variables which demonstrates correlation between the two
     
     Notes:
-        - TBD
+        - Uses numpyplot and can add customization for graph as needed
+        - Uses mean trim with 
     """
     
-    qual_df = pd.read_excel(qual_filename)
-    company_df = pd.read_excel(company_filename, index_col=0)
+    company_df = pd.read_excel(quant_filename, index_col=0)
 
     def mean_trim_list(int_trim, df):
         """
@@ -449,13 +454,90 @@ def regression_visual(company_filename, qual_filename, x_var, y_var, export_file
     plt.text(x_coord, y_coord-scale, f'N = {len(company_df.index)}', horizontalalignment='right')
 
     #Show and save
+    plt.savefig(export_filename)
     plt.show()
-    plt.savefig(export_filename) 
+
+def box_visual(quant_filename, qual_filename, qual_var, int_trim, export_filename):
+    """
+    Parameters:
+        - quant_filename: File path to the spreadsheet with data for companies (raw or manipulated data)
+        - x_var: string variable to be displayed on the x-axis (also the column name of the data)
+        - categories: List of category rankings that goes from least to greatest ranking (requires prior scraping)
+        - export_filename: filename that you want to export it as (please include file preferred file type)
+    
+    Actions:
+        - Returns: None
+        - Makes box plot according to qualitiative categories on x-axis and value on the y-axis
+    
+    Notes:
+        - TBD
+    """
+    quant_df = pd.read_excel(quant_filename, index_col=0)
+    qual_df = pd.read_excel(qual_filename)
+    print(qual_df)
+    
+    def ticker_name_connection(df):
+        """
+        Parameters:
+            - df: DataFrame that has tickers that correspond to the company names as listed on the survey
+
+        Actions:
+            - Returns dictionary mapping tickers to company names
+        """
+        name_dict = {}
+        for _, row in df.iterrows():
+            name_dict[row['Company Name']] = row['Ticker']
+        return name_dict
+
+    connect = ticker_name_connection(pd.read_excel('tickers.xlsx'))
+    plot_vals = {}
+
+    for _, row in qual_df.iterrows():
+        if isinstance(row['Q45_2'], str):
+            try:
+                ticker = connect[row['Q45_2']]
+                answer = row[qual_var]
+
+                for ix, row in quant_df.iterrows():
+                    if ticker == row['symbol']:
+                        val = np.average(quant_df.iloc[ix, 4:9].tolist())
+                        
+                        if not isnan(val):
+                            try:
+                                plot_vals[answer].append(val)
+                            except:
+                                plot_vals[answer] = [val]
+            except:
+                continue
+    
+    def trim_outliers(dict):
+        """
+        Trims the dictionary lists to not include a proportion of the ends of the list
+        """
+        for key in dict:
+            trim_num = int(len(dict[key])*int_trim/2)
+            dict[key] = sorted(dict[key])
+            dict[key] = [dict[key][i] for i in range(len(dict[key])) if i > trim_num and i < (len(dict[key]) - trim_num-1)]
+
+    trim_outliers(plot_vals)
+    data = [plot_vals[key] for key in plot_vals]
+    fig1, ax1 = plt.subplots()
+    ax1.set_title('Category Rank vs. Average KPI Measure')
+    plt.ylabel('Average KPI Measure aobve Industry Average')
+    plt.xlabel(qual_df.loc[1, qual_var])
+    ax1.boxplot(data)
+    list_keys = [str(cat.split()[0]) for cat in plot_vals.keys()]
+    print(list_keys)
+    plt.xticks([(i+1) for i in range(len(list_keys))], list_keys)
+
+    plt.savefig(export_filename)
+    plt.show()
 
 if __name__ == "__main__":
-    regression_visual('Sheets/public_fin_indiv.xlsx', 'Sheets/public_fin_industry_year.xlsx', 'returnOnEquity', 'debtEquityRatio', 'i.png')
     
-    
+    box_visual('Sheets/percent_above_industry.xlsx', 'Sheets/HN_qual.xlsm', 'Q163', 0.25, 'tech_talent_25_kpi_average')
+
+
 
     
 
