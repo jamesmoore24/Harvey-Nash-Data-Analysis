@@ -29,11 +29,11 @@ COMPLETED:
 2. Obtain key performance indicators (kpi's) through financial data repositories (WRDS and FMP)
 3. Clean data (5% trimmed mean) and relate relative to industry data standard for that period 
 4. Compare data to [GICS](https://www.msci.com/our-solutions/indexes/gics) industry sector averages (from WRDS, GICS sectors information from fidelity.com) and obtain % ratio information
+5. Perform regressions on data to determine relationships between survey answers and financial performance for publicly listed companies (r>0.4).
+6. Visualize regressions using available packages (listed above) 
 
 HERE:
 
-5. Perform regressions on data to determine relationships between survey answers and financial performance for publicly listed companies (r>0.4).
-6. Visualize regressions using available packages (listed above)
 7. Create company briefing using kpi, visual and quantitative information including case-study of at least one "standout" company
 
 ### Takeaways:
