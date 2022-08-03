@@ -470,7 +470,7 @@ def box_visual(quant_filename, qual_filename, qual_var, int_trim, export_filenam
         - Makes box plot according to qualitiative categories on x-axis and value on the y-axis
     
     Notes:
-        - TBD
+        - 
     """
     quant_df = pd.read_excel(quant_filename, index_col=0)
     qual_df = pd.read_excel(qual_filename)
@@ -519,6 +519,7 @@ def box_visual(quant_filename, qual_filename, qual_var, int_trim, export_filenam
             dict[key] = sorted(dict[key])
             dict[key] = [dict[key][i] for i in range(len(dict[key])) if i > trim_num and i < (len(dict[key]) - trim_num-1)]
 
+    #trim and plot
     trim_outliers(plot_vals)
     data = [plot_vals[key] for key in plot_vals]
     fig1, ax1 = plt.subplots()
@@ -529,31 +530,8 @@ def box_visual(quant_filename, qual_filename, qual_var, int_trim, export_filenam
     list_keys = [str(cat.split()[0]) for cat in plot_vals.keys()]
     print(list_keys)
     plt.xticks([(i+1) for i in range(len(list_keys))], list_keys)
-
     plt.savefig(export_filename)
     plt.show()
 
 if __name__ == "__main__":
-    
     box_visual('Sheets/percent_above_industry.xlsx', 'Sheets/HN_qual.xlsm', 'Q163', 0.25, 'tech_talent_25_kpi_average')
-
-
-
-    
-
-
-
-
-
-
-    
-            
-            
-            
-
-
-        
-        
-        
-        
-
