@@ -58,7 +58,8 @@ v 1.3.1 (8/2/22):
     - Adding capabilities for box plots SOLVED
         - Have to scan and set-list to obtain possible answers for questions instead of having user-input those answers
         - O(n) time scale for this, shouldn't matter because of small N value (Takes like 5 seconds to query)
-    - 
+
+All the implementation is finished for what is needed, survey qualitative analysis is now needed. Slight tweaking of code to account for variation in qualitative answers is now needed
 """
 from cmath import isnan
 import pandas as pd
@@ -369,13 +370,13 @@ def percent_to_industry(industry_filename, company_filename, export_filename):
     company_df.columns = new_col_names
     company_df.to_excel(export_filename)
 
-def regression_visual(quant_filename, x_var, y_var, mean_trim, export_filename):
+def regression_visual(quant_filename, x_var, y_var, int_trim, export_filename):
     """
     Parameters:
         - quant_filename: File path to the spreadsheet with data for companies (raw or manipulated data)
         - x_var: string variable to be displayed on the x-axis (also the column name of the data)
         - y_var: string variable to be displayed on the y-axis (also the column name of the data)
-        - mean_trim: float value [0,1] that represents the proportion of data that will be trimmed to perform regression
+        - int_trim: float value [0,1] that represents the proportion of data that will be trimmed to perform regression
         - export_filename: filename that you want to export it as (please include file preferred file type)
     
     Actions:
@@ -423,7 +424,7 @@ def regression_visual(quant_filename, x_var, y_var, mean_trim, export_filename):
     company_df.dropna(subset=[x_var,y_var], inplace=True)
 
     #obtain indices to drop and drop
-    ix_cut = mean_trim_list(0.05, company_df)
+    ix_cut = mean_trim_list(int_trim, company_df)
     company_df = company_df.drop(ix_cut)
     
     #Present Data
@@ -457,24 +458,23 @@ def regression_visual(quant_filename, x_var, y_var, mean_trim, export_filename):
     plt.savefig(export_filename)
     plt.show()
 
-def box_visual(quant_filename, qual_filename, qual_var, int_trim, export_filename):
+def box_visual(quant_filename, qual_filename, qual_var, int_trim):
     """
     Parameters:
         - quant_filename: File path to the spreadsheet with data for companies (raw or manipulated data)
-        - x_var: string variable to be displayed on the x-axis (also the column name of the data)
-        - categories: List of category rankings that goes from least to greatest ranking (requires prior scraping)
-        - export_filename: filename that you want to export it as (please include file preferred file type)
+        - qual_filename: File path to the spreadsheet with HN survey data
+        - qual_variable: ID of question wanting to query
+        - int_trim: Integer [0,1) that represents the amount of data needed to be trimmed from initial 
     
     Actions:
         - Returns: None
         - Makes box plot according to qualitiative categories on x-axis and value on the y-axis
     
     Notes:
-        - 
+        - Export filename is the combination of the unique question ID (ex. 'Q25') and the integer of the trim (in %)
     """
     quant_df = pd.read_excel(quant_filename, index_col=0)
     qual_df = pd.read_excel(qual_filename)
-    print(qual_df)
     
     def ticker_name_connection(df):
         """
@@ -489,7 +489,7 @@ def box_visual(quant_filename, qual_filename, qual_var, int_trim, export_filenam
             name_dict[row['Company Name']] = row['Ticker']
         return name_dict
 
-    connect = ticker_name_connection(pd.read_excel('tickers.xlsx'))
+    connect = ticker_name_connection(pd.read_excel('Sheets/tickers.xlsx'))
     plot_vals = {}
 
     for _, row in qual_df.iterrows():
@@ -522,16 +522,33 @@ def box_visual(quant_filename, qual_filename, qual_var, int_trim, export_filenam
     #trim and plot
     trim_outliers(plot_vals)
     data = [plot_vals[key] for key in plot_vals]
-    fig1, ax1 = plt.subplots()
-    ax1.set_title('Category Rank vs. Average KPI Measure')
-    plt.ylabel('Average KPI Measure aobve Industry Average')
-    plt.xlabel(qual_df.loc[1, qual_var])
+    fig1, ax1 = plt.subplots(figsize=(10, 8))
+    ax1.set_title('Category Rank vs. Average KPI Measure', fontsize=20) 
+    plt.ylabel('Average KPI Measure Above Industry Average (%)', fontsize=12)
+    x_label = qual_df.loc[1, qual_var].split(' ')
+    x_label[int(len(x_label)/2)] += '\n'
+    x_label = (' ').join(x_label)
+    plt.xlabel(x_label, fontsize=12)
     ax1.boxplot(data)
-    list_keys = [str(cat.split()[0]) for cat in plot_vals.keys()]
-    print(list_keys)
-    plt.xticks([(i+1) for i in range(len(list_keys))], list_keys)
-    plt.savefig(export_filename)
-    plt.show()
+    plt.xticks([(i+1) for i in range(len(plot_vals))], plot_vals)
+    plt.savefig(f'Graphs/{qual_var}_{int(int_trim*100)}.png', dpi=300)
+
+def box_create_all(quant_filename, qual_filename, int_trim):
+    """
+    Parameters:
+        - quant_filename: File path to the spreadsheet with data for companies (raw or manipulated data)
+        - qual_filename: File path to the spreadsheet with HN survey data
+        - int_trim: Integer [0,1) that represents the amount of data needed to be trimmed from initial 
+    """
+    qual_df = pd.read_excel(qual_filename)
+
+    for col in qual_df.columns[21:]:
+        print(col)
+        try:
+            box_visual(quant_filename, qual_filename, col, int_trim)
+        except:
+            print("ERROR for ", col)
+            continue
 
 if __name__ == "__main__":
-    box_visual('Sheets/percent_above_industry.xlsx', 'Sheets/HN_qual.xlsm', 'Q163', 0.25, 'tech_talent_25_kpi_average')
+    box_create_all('Sheets/percent_above_industry.xlsx', 'Sheets/HN_qual.xlsm', 0.25)
