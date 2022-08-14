@@ -59,7 +59,13 @@ v 1.3.1 (8/2/22):
         - Have to scan and set-list to obtain possible answers for questions instead of having user-input those answers
         - O(n) time scale for this, shouldn't matter because of small N value (Takes like 5 seconds to query)
 
-All the implementation is finished for what is needed, survey qualitative analysis is now needed. Slight tweaking of code to account for variation in qualitative answers is now needed
+v 1.3.2 (8/12/22):
+    - Touched up box plox implementation
+        - Made sure plots did not show NaN values as answers
+    - Created box_create_all function which goes through entire survey and works on box plots for all companies
+
+All the implementation is finished for what is needed, survey qualitative analysis is now needed. Slight tweaking of code to account for variation in qualitative answers is now needed.
+Can mass produce graphs and analyze for commonalities/scan them for interesting trends
 """
 from cmath import isnan
 import pandas as pd
@@ -456,7 +462,6 @@ def regression_visual(quant_filename, x_var, y_var, int_trim, export_filename):
 
     #Show and save
     plt.savefig(export_filename)
-    plt.show()
 
 def box_visual(quant_filename, qual_filename, qual_var, int_trim):
     """
@@ -492,21 +497,24 @@ def box_visual(quant_filename, qual_filename, qual_var, int_trim):
     connect = ticker_name_connection(pd.read_excel('Sheets/tickers.xlsx'))
     plot_vals = {}
 
+    #organize data into dictionary for plotting
     for _, row in qual_df.iterrows():
         if isinstance(row['Q45_2'], str):
             try:
                 ticker = connect[row['Q45_2']]
                 answer = row[qual_var]
 
-                for ix, row in quant_df.iterrows():
-                    if ticker == row['symbol']:
-                        val = np.average(quant_df.iloc[ix, 4:9].tolist())
-                        
-                        if not isnan(val):
-                            try:
-                                plot_vals[answer].append(val)
-                            except:
-                                plot_vals[answer] = [val]
+                #check for nan values ( 'not isnan(answers)' doesn't work here for some reason )
+                if isinstance(answer, str):
+                    for ix, row in quant_df.iterrows():
+                        if ticker == row['symbol']:
+                            val = np.average(quant_df.iloc[ix, 4:9].tolist())
+                            
+                            if not isnan(val):
+                                try:
+                                    plot_vals[answer].append(val)
+                                except:
+                                    plot_vals[answer] = [val]
             except:
                 continue
     
@@ -525,6 +533,7 @@ def box_visual(quant_filename, qual_filename, qual_var, int_trim):
     fig1, ax1 = plt.subplots(figsize=(10, 8))
     ax1.set_title('Category Rank vs. Average KPI Measure', fontsize=20) 
     plt.ylabel('Average KPI Measure Above Industry Average (%)', fontsize=12)
+    #put x label on 2 lines to make readable
     x_label = qual_df.loc[1, qual_var].split(' ')
     x_label[int(len(x_label)/2)] += '\n'
     x_label = (' ').join(x_label)
