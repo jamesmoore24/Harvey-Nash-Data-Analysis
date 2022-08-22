@@ -543,6 +543,8 @@ def box_visual(quant_filename, qual_filename, qual_var, int_trim):
     plt.savefig(f'Graphs/{qual_var}_{int(int_trim*100)}.png', dpi=300)
 
 def box_create_all(quant_filename, qual_filename, int_trim):
+
+
     """
     Parameters:
         - quant_filename: File path to the spreadsheet with data for companies (raw or manipulated data)
@@ -559,5 +561,20 @@ def box_create_all(quant_filename, qual_filename, int_trim):
             print("ERROR for ", col)
             continue
 
+
+
 if __name__ == "__main__":
-    box_create_all('Sheets/percent_above_industry.xlsx', 'Sheets/HN_qual.xlsm', 0.25)
+    from PIL import Image
+
+    ix = 0
+    while True:
+        for file in os.listdir('Graphs/Box Plots'):
+            try:
+                img = Image.open(f'Graphs/Box Plots/{file}')
+                img.show()
+                print(ix, file)
+                time.sleep(5)
+                img.close()
+                ix += 1
+            except:
+                continue
