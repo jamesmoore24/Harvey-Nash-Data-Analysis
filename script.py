@@ -564,16 +564,4 @@ def box_create_all(quant_filename, qual_filename, int_trim):
 
 
 if __name__ == "__main__":
-    from PIL import Image
-
-    ix = 0
-    for file in os.listdir('Graphs/Box Plots'):
-        try:
-            img = Image.open(f'Graphs/Box Plots/{file}')
-            img.show()
-            print(ix, file)
-            time.sleep(5)
-            img.close()
-            ix += 1
-        except:
-            continue
+    None
