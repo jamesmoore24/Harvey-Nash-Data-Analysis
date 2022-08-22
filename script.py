@@ -567,14 +567,13 @@ if __name__ == "__main__":
     from PIL import Image
 
     ix = 0
-    while True:
-        for file in os.listdir('Graphs/Box Plots'):
-            try:
-                img = Image.open(f'Graphs/Box Plots/{file}')
-                img.show()
-                print(ix, file)
-                time.sleep(5)
-                img.close()
-                ix += 1
-            except:
-                continue
+    for file in os.listdir('Graphs/Box Plots'):
+        try:
+            img = Image.open(f'Graphs/Box Plots/{file}')
+            img.show()
+            print(ix, file)
+            time.sleep(5)
+            img.close()
+            ix += 1
+        except:
+            continue
