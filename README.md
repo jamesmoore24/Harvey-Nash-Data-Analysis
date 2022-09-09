@@ -31,10 +31,7 @@ COMPLETED:
 4. Compare data to [GICS](https://www.msci.com/our-solutions/indexes/gics) industry sector averages (from WRDS, GICS sectors information from fidelity.com) and obtain % ratio information
 5. Perform regressions on data to determine relationships between survey answers and financial performance for publicly listed companies (r>0.4).
 6. Visualize regressions using available packages (listed above) 
-
-HERE:
-
 7. Create company briefing using kpi, visual and quantitative information including case-study of at least one "standout" company
 
 ### Takeaways:
-TBD
+This project challenged me to think critically on how to obtain and analyze information relevant to a overarching question. Being able to utilize Python with certain packages to help solve this type of problem was something that I had never experienced before and I believe that as a result of this project I have a firm understanding of different data structures, manipulation and analysis of information obtained through API pipelines.
