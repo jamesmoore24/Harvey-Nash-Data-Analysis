@@ -52,7 +52,6 @@ v 1.3 (7/29/22):
     - Data visualization complete and errors fixed 
         - Ran into indexing error and ended up ghaving to use dataframe instead of individual series to work
         - When dropping values from list, alters list and creates indexing problem essentially
-    - 
 
 v 1.3.1 (8/2/22):
     - Adding capabilities for box plots SOLVED
@@ -75,6 +74,7 @@ import datetime
 import fmpsdk
 import os
 import numpy as np
+from scipy import stats 
 import matplotlib.pyplot as plt
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
@@ -508,6 +508,7 @@ def box_visual(quant_filename, qual_filename, qual_var, int_trim):
                 if isinstance(answer, str):
                     for ix, row in quant_df.iterrows():
                         if ticker == row['symbol']:
+                            #KPI measurement
                             val = np.average(quant_df.iloc[ix, 4:9].tolist())
                             
                             if not isnan(val):
@@ -543,8 +544,6 @@ def box_visual(quant_filename, qual_filename, qual_var, int_trim):
     plt.savefig(f'Graphs/{qual_var}_{int(int_trim*100)}.png', dpi=300)
 
 def box_create_all(quant_filename, qual_filename, int_trim):
-
-
     """
     Parameters:
         - quant_filename: File path to the spreadsheet with data for companies (raw or manipulated data)
@@ -553,6 +552,7 @@ def box_create_all(quant_filename, qual_filename, int_trim):
     """
     qual_df = pd.read_excel(qual_filename)
 
+    #skip first 20 questions because of demographic questions
     for col in qual_df.columns[21:]:
         print(col)
         try:
@@ -561,7 +561,60 @@ def box_create_all(quant_filename, qual_filename, int_trim):
             print("ERROR for ", col)
             continue
 
+def regression_qual_vs_quant_visual(quant_filename, qual_filename, question_num, int_trim):
+    """
+    Goal is to go through all the filenames in the box plots and query the column of responses to determine correlation coefficient between certain answers
+    For now can use dummy variables 1 and 0 for effective vs. ineffective at doing a certain task mentioned on the survey
+    Can also do a difference of means calculation in order to find significant difference (Welch's T-Test since want to prove significance but the 2 samples don't have equal sizes)
 
+    Output DataFrame will have different question names for rows and corresponding data analysis for columns
+    """
+    data_df = pd.read_excel(quant_filename, index_col=0)
+    company_df = pd.read_excel(qual_filename, index_col=0)
+
+    output_df = pd.DataFrame(columns=['Question', 'Difference of Means', 'Regression Model [y, m]', 'T-Test Significance (stat, p)', 'N-Value (Important, Not Important)'])
+
+    for col in company_df.columns:
+        dummy_vals = []
+        important = []
+        not_important = []
+        if question_num in col:
+            #Need to find company names which are in the percent_above_indsutry spreadsheet
+            #tickers.xlsx map the company names to tickers
+            #Need to use all data for this and say overall mean
+
+            #Go down the company_df to obtain company names and values
+            for _, row_data in data_df.iterrows():
+                mean = np.mean([row_data['% Above/Below Industry Standard quickRatio'], row_data['% Above/Below Industry Standard currentRatio'],
+                                row_data['% Above/Below Industry Standard netProfitMargin'], row_data['% Above/Below Industry Standard returnOnAssets'], 
+                                row_data['% Above/Below Industry Standard returnOnEquity'], row_data['% Above/Below Industry Standard debtEquityRatio']])
+                for _, row in company_df.loc[company_df['Q45_2'] == row_data['Company Name']].iterrows():
+                    print(row[col])
+                    if row[col] in ['Increase']:
+                        if not isnan(mean):
+                            important.append(mean)
+                    elif row[col] in ['Decrease']:
+                        if not isnan(mean):
+                            not_important.append(mean)
+            
+            #Trim the important and non-important values
+            int_cut_important = int((len(important)*int_trim)/2)
+            int_cut_not = int((len(not_important)*int_trim)/2)
+            important = sorted(important)
+            not_important = sorted(not_important)
+            important = [important[i] for i in range(len(important)) if int_cut_important < i < len(important)-int_cut_important]
+            not_important = [not_important[i] for i in range(len(not_important)) if int_cut_not < i < len(not_important)-int_cut_not]
+
+            dummy_vals = [1 for i in range(len(important))] + [0 for i in range(len(not_important))]
+            
+            output_df.loc[len(output_df.index)] = [col, np.nanmean(important)-np.nanmean(not_important), np.polyfit(dummy_vals, important + not_important, 1),
+                stats.ttest_ind(important, not_important, equal_var=False), (len(important), len(not_important))]
+
+    output_df.to_excel(f'Sheets/{question_num}.xlsx')
+                             
 
 if __name__ == "__main__":
     None
+
+
+        
